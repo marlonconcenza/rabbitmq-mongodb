@@ -1,0 +1,35 @@
+version: '3.4'
+
+services:
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    ports:
+        - 27017:27017
+    environment:
+        - MONGO_INITDB_ROOT_USERNAME=admin
+        - MONGO_INITDB_ROOT_PASSWORD=123456
+    networks: 
+        - local
+  testemongodb:
+    image: ${DOCKER_REGISTRY-}testemongodb
+    container_name: api
+    ports:
+        - 5001:80
+    build:
+      context: .
+      dockerfile: TesteMongoDB/Dockerfile
+    environment:
+        - MongoUser=admin
+        - MongoPassword=123456
+        - MongoServer=mongodb
+        - MongoPort=27017
+        - MongoDataBaseDefault=admin
+        - MongoDataBase=mydb
+    networks: 
+        - local
+    depends_on:
+        - mongodb
+networks:
+  local:
+    driver: bridge
