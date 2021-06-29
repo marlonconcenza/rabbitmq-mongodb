@@ -1,8 +1,12 @@
 version: '3.4'
 
 services:
-  testemongodb:
+  api:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
     ports:
       - "80"
+
+  consumer:
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro

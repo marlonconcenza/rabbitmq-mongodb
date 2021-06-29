@@ -11,14 +11,34 @@ services:
         - MONGO_INITDB_ROOT_PASSWORD=123456
     networks: 
         - local
-  testemongodb:
-    image: ${DOCKER_REGISTRY-}testemongodb
-    container_name: api
+  rabbitmq:
+    container_name: rabbitmq
+    platform: linux/arm64/v8
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_VHOST: /
+    volumes:
+      - rabbitmq.data:/var/lib/rabbitmq
     ports:
-        - 5001:80
+      - 5671:5671
+      - 5672:5672
+      - 15672:15672
+    networks:
+      - local
+  api:
+    image: ${DOCKER_REGISTRY-}api
     build:
       context: .
-      dockerfile: TesteMongoDB/Dockerfile
+      dockerfile: API/Dockerfile
+    networks:
+      - local
+  consumer:
+    image: ${DOCKER_REGISTRY-}consumer
+    build:
+      context: .
+      dockerfile: Consumer/Dockerfile
     environment:
         - MongoUser=admin
         - MongoPassword=123456
@@ -26,10 +46,11 @@ services:
         - MongoPort=27017
         - MongoDataBaseDefault=admin
         - MongoDataBase=mydb
-    networks: 
-        - local
-    depends_on:
-        - mongodb
+    networks:
+      - local
 networks:
   local:
     driver: bridge
+volumes:
+  rabbitmq.data:
+
