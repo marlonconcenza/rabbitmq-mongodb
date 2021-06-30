@@ -29,13 +29,25 @@ services:
       - local
   api:
     image: ${DOCKER_REGISTRY-}api
+    container_name: api
     build:
       context: .
       dockerfile: API/Dockerfile
+    environment:
+        - MongoUser=admin
+        - MongoPassword=123456
+        - MongoServer=mongodb
+        - MongoPort=27017
+        - MongoDataBaseDefault=admin
+        - MongoDataBase=mydb
     networks:
       - local
+    depends_on:
+      - mongodb
+      - rabbitmq
   consumer:
     image: ${DOCKER_REGISTRY-}consumer
+    container_name: consumer
     build:
       context: .
       dockerfile: Consumer/Dockerfile
@@ -48,6 +60,9 @@ services:
         - MongoDataBase=mydb
     networks:
       - local
+    depends_on:
+      - mongodb
+      - rabbitmq
 networks:
   local:
     driver: bridge

@@ -1,4 +1,5 @@
 ﻿using API.Options;
+using AutoMapper;
 using Common.Models;
 using Common.Repositories;
 using Microsoft.AspNetCore.Http;
@@ -21,8 +22,9 @@ namespace API.Controllers
         private readonly ConnectionFactory _factory;
         private readonly RabbitMqConfiguration _config;
         private readonly IUserRepository _userRepository;
+        private readonly IMapper _mapper;
 
-        public UsersController(IOptions<RabbitMqConfiguration> options, IUserRepository userRepository)
+        public UsersController(IOptions<RabbitMqConfiguration> options, IUserRepository userRepository, IMapper mapper)
         {
             _config = options.Value;
 
@@ -32,6 +34,7 @@ namespace API.Controllers
             };
 
             _userRepository = userRepository;
+            _mapper = mapper;
         }
 
         [HttpPost]
@@ -52,14 +55,9 @@ namespace API.Controllers
                             autoDelete: false,
                             arguments: null);
 
-                        var user = new User
-                        {
-                            uuid = Guid.NewGuid(),
-                            name = dto.name,
-                            age = dto.age
-                        };
+                        dto.uuid = uuid;
 
-                        var stringfiedMessage = JsonConvert.SerializeObject(user);
+                        var stringfiedMessage = JsonConvert.SerializeObject(dto);
 
                         var bytesMessage = Encoding.UTF8.GetBytes(stringfiedMessage);
 
@@ -79,19 +77,18 @@ namespace API.Controllers
             return Ok(uuid);
         }
 
+        [HttpGet("{uuid}")]
         public async Task<IActionResult> Get(string uuid)
         {
             try
             {
-                var user = await _userRepository.Get(Guid.Parse(uuid));
+                Guid guid = Guid.Parse(uuid);
+
+                var user = await _userRepository.Get(guid);
 
                 if (user == null) return NotFound();
 
-                var dto = new UserDTO
-                {
-                    name = user.name,
-                    age = user.age
-                };
+                var dto = _mapper.Map<UserDTO>(user);
 
                 return Ok(dto);
             }
@@ -100,11 +97,29 @@ namespace API.Controllers
                 return BadRequest(ex);
             }
         }
-    }
 
-    public class UserDTO
-    {
-        public string name { get; set; }
-        public int age { get; set; }
+        [HttpGet]
+        public async Task<IActionResult> Get()
+        {
+            try
+            {
+                var users = await _userRepository.Get();
+
+                if (users == null) return NotFound();
+
+                var dtos = new List<UserDTO>();
+
+                foreach (var item in users)
+                {
+                    dtos.Add(_mapper.Map<UserDTO>(item));
+                }
+
+                return Ok(dtos);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
+        }
     }
 }

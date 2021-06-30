@@ -1,4 +1,7 @@
 using API.Options;
+using AutoMapper;
+using Common.Models;
+using Common.Repositories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -7,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,9 +30,24 @@ namespace API
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            var config = new MapperConfiguration(cfg =>
+            {
+                cfg.CreateMap<User, UserDTO>();
+            });
+
+            IMapper mapper = config.CreateMapper();
+            services.AddSingleton(mapper);
+
             services.Configure<RabbitMqConfiguration>(Configuration.GetSection("RabbitMqConfig"));
 
+            string connstring = $"mongodb://{Environment.GetEnvironmentVariable("MongoUser")}:{Environment.GetEnvironmentVariable("MongoPassword")}@{Environment.GetEnvironmentVariable("MongoServer")}:{Environment.GetEnvironmentVariable("MongoPort")}/{Environment.GetEnvironmentVariable("MongoDataBaseDefault")}";
+
+            services.AddSingleton<IMongoClient, MongoClient>(sp => new MongoClient(connstring));
+
+            services.AddScoped<IUserRepository, UserRepository>();
+
             services.AddControllers();
+
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "API", Version = "v1" });
