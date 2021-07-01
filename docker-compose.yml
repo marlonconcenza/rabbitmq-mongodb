@@ -10,7 +10,9 @@ services:
         - MONGO_INITDB_ROOT_USERNAME=admin
         - MONGO_INITDB_ROOT_PASSWORD=123456
     networks: 
-        - local
+        - backend
+    volumes:
+      - mongodb.data:/var/lib/mongodb
   rabbitmq:
     container_name: rabbitmq
     platform: linux/arm64/v8
@@ -26,14 +28,18 @@ services:
       - 5672:5672
       - 15672:15672
     networks:
-      - local
+      - backend
   api:
     image: ${DOCKER_REGISTRY-}api
     container_name: api
     build:
       context: .
       dockerfile: API/Dockerfile
+    ports:
+        - 5001:80
     environment:
+        - Rabbitmq_Host=rabbitmq
+        - Rabbitmq_Queue=users
         - MongoUser=admin
         - MongoPassword=123456
         - MongoServer=mongodb
@@ -41,7 +47,7 @@ services:
         - MongoDataBaseDefault=admin
         - MongoDataBase=mydb
     networks:
-      - local
+      - backend
     depends_on:
       - mongodb
       - rabbitmq
@@ -52,6 +58,8 @@ services:
       context: .
       dockerfile: Consumer/Dockerfile
     environment:
+        - Rabbitmq_Host=rabbitmq
+        - Rabbitmq_Queue=users
         - MongoUser=admin
         - MongoPassword=123456
         - MongoServer=mongodb
@@ -59,13 +67,15 @@ services:
         - MongoDataBaseDefault=admin
         - MongoDataBase=mydb
     networks:
-      - local
+      - backend
     depends_on:
       - mongodb
       - rabbitmq
+    restart: always
 networks:
-  local:
+  backend:
     driver: bridge
 volumes:
   rabbitmq.data:
+  mongodb.data:
 

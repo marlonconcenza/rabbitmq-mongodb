@@ -1,15 +1,11 @@
-﻿using API.Options;
-using AutoMapper;
+﻿using AutoMapper;
 using Common.Models;
 using Common.Repositories;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -20,17 +16,14 @@ namespace API.Controllers
     public class UsersController : ControllerBase
     {
         private readonly ConnectionFactory _factory;
-        private readonly RabbitMqConfiguration _config;
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
 
-        public UsersController(IOptions<RabbitMqConfiguration> options, IUserRepository userRepository, IMapper mapper)
+        public UsersController(IUserRepository userRepository, IMapper mapper)
         {
-            _config = options.Value;
-
             _factory = new ConnectionFactory
             {
-                HostName = _config.Host
+                HostName = Environment.GetEnvironmentVariable("Rabbitmq_Host")
             };
 
             _userRepository = userRepository;
@@ -41,6 +34,7 @@ namespace API.Controllers
         public async Task<IActionResult> Post([FromBody]UserDTO dto)
         {
             var uuid = Guid.NewGuid();
+            var queue = Environment.GetEnvironmentVariable("Rabbitmq_Queue");
 
             try
             {
@@ -49,7 +43,7 @@ namespace API.Controllers
                     using (var channel = connection.CreateModel())
                     {
                         channel.QueueDeclare(
-                            queue: _config.Queue, //nome da fila
+                            queue: queue, //nome da fila
                             durable: false,
                             exclusive: false,
                             autoDelete: false,
@@ -63,7 +57,7 @@ namespace API.Controllers
 
                         channel.BasicPublish(
                             exchange: "",
-                            routingKey: _config.Queue, //nome da fila
+                            routingKey: queue, //nome da fila
                             basicProperties: null,
                             body: bytesMessage);
                     }
