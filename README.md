@@ -8,8 +8,8 @@
 ## Sobre este projeto
 
 Projeto para aplicar conceitos de utilização [RabbitMQ](https://www.rabbitmq.com) e [MongoDB](https://www.mongodb.com/pt-br).<br /><br />
-O projeto é composto por uma API Rest que inclui dados na fila do rabbitmq e um Worker que fica monitorando a fila e salvando os dados no MongoDB.<br /><br />
-Foi utilizado docker-compose para orquestração dos containers, com isso ao subir o projeto teremos quartro containers: rabbitmq, mongo, api e consumer.
+O projeto é composto por uma API Rest que inclui dados em uma fila do Rabbitmq e um Worker que fica monitorando a fila e salvando os dados no MongoDB.<br /><br />
+Foi utilizado Docker Compose para orquestração dos containers, com isso ao subir o projeto teremos quartro containers executando: rabbitmq, mongodb, api e consumer.
 
 ## Tecnologias utilizadas
 
