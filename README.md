@@ -47,3 +47,11 @@ RabbitMQ Management:
 - **URL:** http://localhost:15672
 - **Username:** guest
 - **Password:** guest
+
+MongoDB:
+> Caso queira consultar os dados no MongoDB através de alguma interface gráfica, você precisará de um client para MongoDB, o mais famoso é o [Robo3T](https://robomongo.org).
+
+- **Address:** localhost
+- **Port:** 27017
+- **Username:** admin
+- **Password:** 123456
