@@ -34,6 +34,16 @@ $ git clone https://github.com/marlonconcenza/rabbitmq.git
 
 No diretório do seu projeto, você pode rodar:
 
-### `docker-compose up`
+#### `docker-compose up`
 
 Executa o projeto em modo de desenvolvimento.
+
+## Acessos
+
+API:
+- **URL:** http://localhost:5001/swagger
+	
+RabbitMQ Management:
+- **URL:** http://localhost:15672
+- **Username:** guest
+- **Password:** guest
