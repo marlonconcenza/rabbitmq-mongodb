@@ -7,8 +7,6 @@ using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -34,80 +32,74 @@ namespace Consumer
 
         private void InitRabbitMQ()
         {
-            _logger.LogInformation($"Iniciando Consumer");
-
-            //Thread.Sleep(10000);
-
-            //_logger.LogInformation($"Iniciando Consumer agora / {DateTime.Now.ToString("hh:mm:ss")}");
-
-            var factory = new ConnectionFactory 
-            { 
-                HostName = Environment.GetEnvironmentVariable("Rabbitmq_Host") 
+            var factory = new ConnectionFactory
+            {
+                HostName = Environment.GetEnvironmentVariable("Rabbitmq_Host")
             };
 
-            // create connection  
-            _connection = factory.CreateConnection();
+            try
+            {
+                // create connection  
+                _connection = factory.CreateConnection();
 
-            // create channel  
-            _channel = _connection.CreateModel();
+                // create channel  
+                _channel = _connection.CreateModel();
 
-            _channel.QueueDeclare(
-                            queue: Environment.GetEnvironmentVariable("Rabbitmq_Queue"), //nome da fila
-                            durable: false,
-                            exclusive: false,
-                            autoDelete: false,
-                            arguments: null);
+                _channel.QueueDeclare(
+                                queue: Environment.GetEnvironmentVariable("Rabbitmq_Queue"), //nome da fila
+                                durable: false,
+                                exclusive: false,
+                                autoDelete: false,
+                                arguments: null);
 
-            //_channel.ExchangeDeclare("demo.exchange", ExchangeType.Topic);
-            //_channel.QueueBind("demo.queue.log", "demo.exchange", "demo.queue.*", null);
-            //_channel.BasicQos(0, 1, false);
-
-            _connection.ConnectionShutdown += RabbitMQ_ConnectionShutdown;
+                _channel.BasicQos(0, 1, false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                throw;
+            }
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var consumer = new EventingBasicConsumer(_channel);
-
-            consumer.Received += async (sender, eventArgs) =>
+            try
             {
-                // received message  
-                var contentArray = eventArgs.Body.ToArray();
-                var contentString = Encoding.UTF8.GetString(contentArray);
-                var dto = JsonConvert.DeserializeObject<UserDTO>(contentString);
+                var consumer = new EventingBasicConsumer(_channel);
 
-                _logger.LogInformation($"Datetime: {DateTime.Now.ToString("dd/MM/yyyy hh:mm:ss")} / JSON: {contentString}");
-
-                if (dto != null)
+                consumer.Received += async (sender, eventArgs) =>
                 {
-                    var user = _mapper.Map<User>(dto);
+                    // received message  
+                    var contentArray = eventArgs.Body.ToArray();
+                    var contentString = Encoding.UTF8.GetString(contentArray);
+                    var dto = JsonConvert.DeserializeObject<UserDTO>(contentString);
 
-                    //NotifyUser(message);
+                    _logger.LogInformation($"Datetime: {DateTime.Now.ToString("dd/MM/yyyy hh:mm:ss")} / JSON: {contentString}");
 
-                    await _userRepository.Create(user);
-                }
+                    if (dto != null)
+                    {
+                        var user = _mapper.Map<User>(dto);
 
-                _channel.BasicAck(eventArgs.DeliveryTag, false);
-            };
+                        await _userRepository.Create(user);
 
-            consumer.Shutdown += OnConsumerShutdown;
-            consumer.Registered += OnConsumerRegistered;
-            consumer.Unregistered += OnConsumerUnregistered;
-            consumer.ConsumerCancelled += OnConsumerConsumerCancelled;
+                        _channel.BasicAck(eventArgs.DeliveryTag, false);
+                    }
+                };
 
-            _channel.BasicConsume(Environment.GetEnvironmentVariable("Rabbitmq_Queue"), false, consumer);
+                _channel.BasicConsume(Environment.GetEnvironmentVariable("Rabbitmq_Queue"), false, consumer);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                throw;
+            }
         }
-
-        private void OnConsumerConsumerCancelled(object sender, ConsumerEventArgs e) { }
-        private void OnConsumerUnregistered(object sender, ConsumerEventArgs e) { }
-        private void OnConsumerRegistered(object sender, ConsumerEventArgs e) { }
-        private void OnConsumerShutdown(object sender, ShutdownEventArgs e) { }
-        private void RabbitMQ_ConnectionShutdown(object sender, ShutdownEventArgs e) { }
-
+        
         public override void Dispose()
         {
             _channel.Close();
             _connection.Close();
+
             base.Dispose();
         }
     }
